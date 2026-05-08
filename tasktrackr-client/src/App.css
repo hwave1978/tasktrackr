@@ -1,0 +1,218 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", sans-serif;
+  background: #f4f7f2;
+  color: #24301f;
+}
+
+.app {
+  min-height: 100vh;
+}
+
+.top-bar {
+  width: 92%;
+  margin: 20px auto;
+  padding: 18px 28px;
+  background: white;
+  border-radius: 22px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.logo {
+  font-size: 26px;
+  font-weight: 700;
+  color: #5fa834;
+}
+
+.logout-btn,
+.category,
+.filter,
+.task-card button,
+.save-btn,
+.delete-btn {
+  border: none;
+  border-radius: 12px;
+  padding: 10px 14px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.logout-btn,
+.save-btn {
+  background: #5fa834;
+  color: white;
+}
+
+.layout {
+  width: 92%;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 220px 1fr 300px;
+  gap: 20px;
+}
+
+.sidebar,
+.hero-card,
+.task-card,
+.editor {
+  background: white;
+  border-radius: 22px;
+  padding: 22px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+}
+
+.sidebar h2,
+.editor h2 {
+  margin-top: 0;
+}
+
+.category {
+  width: 100%;
+  margin-bottom: 10px;
+  text-align: left;
+  background: #eef5ea;
+  color: #24301f;
+}
+
+.category.active,
+.filter.active {
+  background: #5fa834;
+  color: white;
+}
+
+.hero-card h1 {
+  margin-top: 0;
+  font-size: 34px;
+}
+
+.hero-card p {
+  color: #65715e;
+}
+
+.filter-row {
+  margin-top: 20px;
+  display: flex;
+  gap: 10px;
+}
+
+.filter {
+  background: #eef5ea;
+}
+
+.task-card {
+  margin-top: 18px;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.task-card h3 {
+  margin: 0 0 8px;
+}
+
+.task-card p {
+  margin: 0 0 10px;
+  color: #65715e;
+}
+
+.task-card span {
+  font-size: 14px;
+  color: #5fa834;
+  font-weight: 600;
+}
+
+.task-card button {
+  background: #eef5ea;
+  color: #24301f;
+  height: 40px;
+}
+
+.editor {
+  display: flex;
+  flex-direction: column;
+}
+
+.editor label {
+  margin-top: 14px;
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+
+.editor input,
+.editor textarea {
+  width: 100%;
+  border: 1px solid #d8e2d2;
+  border-radius: 12px;
+  padding: 11px;
+  font-family: inherit;
+}
+
+.editor textarea {
+  min-height: 90px;
+}
+
+.editor-buttons {
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.delete-btn {
+  background: #f2dddd;
+  color: #9b2c2c;
+}
+
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.login-card {
+  width: 380px;
+  background: white;
+  padding: 40px;
+  border-radius: 24px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+}
+
+.login-card h1 {
+  margin-top: 0;
+  color: #5fa834;
+  font-size: 40px;
+}
+
+.login-card p {
+  margin-bottom: 24px;
+  color: #65715e;
+}
+
+.login-card input {
+  margin-bottom: 14px;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid #d8e2d2;
+  font-size: 15px;
+}
+
+.login-card button {
+  margin-top: 10px;
+  padding: 14px;
+  border: none;
+  border-radius: 12px;
+  background: #5fa834;
+  color: white;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
