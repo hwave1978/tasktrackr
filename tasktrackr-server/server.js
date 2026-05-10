@@ -10,7 +10,7 @@ app.use(
   cors({
     origin: "http://13.220.217.58:5173",
     credentials: true,
-  })
+  }),
 );
 
 app.use(express.json());
@@ -94,15 +94,13 @@ app.post("/logout", (req, res) => {
    GET TASKS
 ---------------------------- */
 app.get("/tasks", authMiddleware, (req, res) => {
-  const sql = `
-    SELECT id, title, description, category, due_date, completed
-    FROM tasks
-    ORDER BY id DESC
-  `;
+  const userId = req.cookies.tasktrackr_session;
 
-  db.query(sql, (err, results) => {
+  const sql = "SELECT * FROM tasks WHERE user_id = ? ORDER BY id DESC";
+
+  db.query(sql, [userId], (err, results) => {
     if (err) {
-      return res.status(500).json({ error: "Failed to load tasks" });
+      return res.status(500).json({ error: "Could not get tasks" });
     }
 
     res.json(results);
@@ -113,33 +111,30 @@ app.get("/tasks", authMiddleware, (req, res) => {
    ADD TASK
 ---------------------------- */
 app.post("/tasks", authMiddleware, (req, res) => {
-  const {
-    title,
-    description,
-    category = "General",
-    due_date = null,
-  } = req.body;
-
-  if (!title) {
-    return res.status(400).json({ error: "Task title is required" });
-  }
+  const userId = req.cookies.tasktrackr_session;
+  const { title, description, category, due_date, completed } = req.body;
 
   const sql = `
-    INSERT INTO tasks (title, description, category, due_date, completed)
-    VALUES (?, ?, ?, ?, false)
+    INSERT INTO tasks (user_id, title, description, category, due_date, completed)
+    VALUES (?, ?, ?, ?, ?, ?)
   `;
 
   db.query(
     sql,
-    [title, description || "", category || "General", due_date || null],
+    [userId, title, description, category, due_date || null, completed || false],
     (err, result) => {
       if (err) {
-        return res.status(500).json({ error: "Failed to add task" });
+        return res.status(500).json({ error: "Could not add task" });
       }
 
       res.json({
-        message: "Task added",
-        taskId: result.insertId,
+        id: result.insertId,
+        user_id: userId,
+        title,
+        description,
+        category,
+        due_date,
+        completed,
       });
     }
   );
@@ -149,42 +144,33 @@ app.post("/tasks", authMiddleware, (req, res) => {
    UPDATE TASK
 ---------------------------- */
 app.put("/tasks/:id", authMiddleware, (req, res) => {
-  const { id } = req.params;
+  const userId = req.cookies.tasktrackr_session;
 
-  const {
-    title,
-    description,
-    category = "General",
-    due_date = null,
-    completed = false,
-  } = req.body;
-
-  if (!title) {
-    return res.status(400).json({ error: "Task title is required" });
-  }
+  const { title, description, category, due_date, completed } = req.body;
 
   const sql = `
     UPDATE tasks
     SET title = ?, description = ?, category = ?, due_date = ?, completed = ?
-    WHERE id = ?
+    WHERE id = ? AND user_id = ?
   `;
 
   db.query(
     sql,
     [
       title,
-      description || "",
-      category || "General",
+      description,
+      category,
       due_date || null,
-      completed ? 1 : 0,
-      id,
+      completed,
+      req.params.id,
+      userId,
     ],
     (err) => {
       if (err) {
-        return res.status(500).json({ error: "Failed to update task" });
+        return res.status(500).json({ error: "Could not update task" });
       }
 
-      res.json({ message: "Task updated" });
+      res.json({ success: true });
     }
   );
 });
@@ -193,19 +179,19 @@ app.put("/tasks/:id", authMiddleware, (req, res) => {
    DELETE TASK
 ---------------------------- */
 app.delete("/tasks/:id", authMiddleware, (req, res) => {
-  const { id } = req.params;
+  const userId = req.cookies.tasktrackr_session;
 
   const sql = `
     DELETE FROM tasks
-    WHERE id = ?
+    WHERE id = ? AND user_id = ?
   `;
 
-  db.query(sql, [id], (err) => {
+  db.query(sql, [req.params.id, userId], (err) => {
     if (err) {
-      return res.status(500).json({ error: "Failed to delete task" });
+      return res.status(500).json({ error: "Could not delete task" });
     }
 
-    res.json({ message: "Task deleted" });
+    res.json({ success: true });
   });
 });
 
