@@ -20,7 +20,7 @@ app.use(cookieParser());
    AUTH MIDDLEWARE
 ---------------------------- */
 function authMiddleware(req, res, next) {
-  if (req.cookies.tasktrackr_session !== "logged-in") {
+  if (!req.cookies.tasktrackr_session) {
     return res.status(401).json({ error: "Not logged in" });
   }
 
@@ -50,7 +50,7 @@ app.post("/login", (req, res) => {
 
     const user = result[0];
 
-    res.cookie("tasktrackr_session", "logged-in", {
+    res.cookie("tasktrackr_session", user.id, {
       httpOnly: true,
       sameSite: "lax",
     });
