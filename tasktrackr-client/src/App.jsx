@@ -13,6 +13,10 @@ function App() {
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [category, setCategory] = useState("General");
+  const [dueDate, setDueDate] = useState("");
+
+  const [activeFilter, setActiveFilter] = useState("All");
 
   useEffect(() => {
     fetchTasks();
@@ -113,6 +117,8 @@ function App() {
       body: JSON.stringify({
         title,
         description,
+        category,
+        due_date: dueDate,
       }),
     })
       .then(async (res) => {
@@ -123,11 +129,27 @@ function App() {
 
         setTitle("");
         setDescription("");
+        setCategory("General");
+        setDueDate("");
         fetchTasks();
       })
       .catch((err) => {
         alert(err.message);
       });
+  }
+
+  function filteredTasks() {
+    if (activeFilter === "All") return tasks;
+
+    if (activeFilter === "Due Soon") {
+      return tasks.filter((task) => task.due_date);
+    }
+
+    if (activeFilter === "Completed") {
+      return tasks.filter((task) => task.completed);
+    }
+
+    return tasks.filter((task) => task.category === activeFilter);
   }
 
   if (!loggedIn) {
@@ -157,6 +179,8 @@ function App() {
     );
   }
 
+  const visibleTasks = filteredTasks();
+
   return (
     <div className="app">
       <div className="top-bar">
@@ -176,9 +200,17 @@ function App() {
         <div className="sidebar">
           <h2>Categories</h2>
 
-          <button className="category active">All Tasks</button>
-          <button className="category">Due Soon</button>
-          <button className="category">Completed</button>
+          {["All", "General", "School", "Work", "Personal", "Due Soon", "Completed"].map(
+            (item) => (
+              <button
+                key={item}
+                className={activeFilter === item ? "category active" : "category"}
+                onClick={() => setActiveFilter(item)}
+              >
+                {item === "All" ? "All Tasks" : item}
+              </button>
+            )
+          )}
         </div>
 
         <div>
@@ -187,13 +219,19 @@ function App() {
             <p>Manage your work and stay productive.</p>
 
             <div className="filter-row">
-              <button className="filter active">All</button>
-              <button className="filter">Due Soon</button>
-              <button className="filter">Completed</button>
+              {["All", "Due Soon", "Completed"].map((item) => (
+                <button
+                  key={item}
+                  className={activeFilter === item ? "filter active" : "filter"}
+                  onClick={() => setActiveFilter(item)}
+                >
+                  {item}
+                </button>
+              ))}
             </div>
           </div>
 
-          {tasks.length === 0 ? (
+          {visibleTasks.length === 0 ? (
             <div className="task-card">
               <div>
                 <h3>No tasks yet</h3>
@@ -202,12 +240,15 @@ function App() {
               </div>
             </div>
           ) : (
-            tasks.map((task) => (
+            visibleTasks.map((task) => (
               <div className="task-card" key={task.id}>
                 <div>
                   <h3>{task.title}</h3>
                   <p>{task.description}</p>
-                  <span>Active Task</span>
+                  <span>
+                    {task.category || "General"}
+                    {task.due_date ? ` • Due ${task.due_date}` : ""}
+                  </span>
                 </div>
 
                 <button>Edit</button>
@@ -220,7 +261,6 @@ function App() {
           <h2>Task Editor</h2>
 
           <label>Task Title</label>
-
           <input
             placeholder="Enter task title"
             value={title}
@@ -228,11 +268,25 @@ function App() {
           />
 
           <label>Description</label>
-
           <textarea
             placeholder="Enter task description"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
+          />
+
+          <label>Category</label>
+          <select value={category} onChange={(e) => setCategory(e.target.value)}>
+            <option>General</option>
+            <option>School</option>
+            <option>Work</option>
+            <option>Personal</option>
+          </select>
+
+          <label>Due Date</label>
+          <input
+            type="date"
+            value={dueDate}
+            onChange={(e) => setDueDate(e.target.value)}
           />
 
           <div className="editor-buttons">
