@@ -8,7 +8,7 @@ const PORT = 3001;
 
 app.use(
   cors({
-    origin: "http://54.175.89.174:5173",
+    origin: "http://13.220.217.58:5173",
     credentials: true,
   })
 );

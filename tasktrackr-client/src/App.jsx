@@ -1,7 +1,7 @@
 import "./App.css";
 import { useEffect, useState } from "react";
 
-const API_URL = "http://54.175.89.174:3001";
+const API_URL = "http://13.220.217.58:3001";
 
 function App() {
   const [loggedIn, setLoggedIn] = useState(false);
