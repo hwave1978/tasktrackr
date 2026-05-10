@@ -106,6 +106,23 @@ app.get("/tasks", authMiddleware, (req, res) => {
     res.json(results);
   });
 });
+app.get("/tasks/:id", authMiddleware, (req, res) => {
+  const userId = req.cookies.tasktrackr_session;
+
+  const sql = "SELECT * FROM tasks WHERE id = ? AND user_id = ?";
+
+  db.query(sql, [req.params.id, userId], (err, results) => {
+    if (err) {
+      return res.status(500).json({ error: "Could not get task" });
+    }
+
+    if (results.length === 0) {
+      return res.status(404).json({ error: "Task not found" });
+    }
+
+    res.json(results[0]);
+  });
+});
 
 /* ---------------------------
    ADD TASK
@@ -121,7 +138,14 @@ app.post("/tasks", authMiddleware, (req, res) => {
 
   db.query(
     sql,
-    [userId, title, description, category, due_date || null, completed || false],
+    [
+      userId,
+      title,
+      description,
+      category,
+      due_date || null,
+      completed || false,
+    ],
     (err, result) => {
       if (err) {
         return res.status(500).json({ error: "Could not add task" });
@@ -136,7 +160,7 @@ app.post("/tasks", authMiddleware, (req, res) => {
         due_date,
         completed,
       });
-    }
+    },
   );
 });
 
@@ -171,7 +195,7 @@ app.put("/tasks/:id", authMiddleware, (req, res) => {
       }
 
       res.json({ success: true });
-    }
+    },
   );
 });
 
