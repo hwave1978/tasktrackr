@@ -49,6 +49,10 @@ function App() {
   }
 
   function login() {
+    if (!email.trim() || !password.trim()) {
+      alert("Enter your email and password first.");
+      return;
+    }
     fetch(`${API_URL}/login`, {
       method: "POST",
       credentials: "include",
@@ -340,7 +344,10 @@ function App() {
           />
 
           <label>Category</label>
-          <select value={category} onChange={(e) => setCategory(e.target.value)}>
+          <select
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+          >
             <option>General</option>
             <option>School</option>
             <option>Work</option>
