@@ -6,6 +6,7 @@ const API_URL = "http://13.220.217.58:3001";
 function App() {
   const [loggedIn, setLoggedIn] = useState(false);
   const [tasks, setTasks] = useState([]);
+  const [currentUser, setCurrentUser] = useState("");
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -53,6 +54,7 @@ function App() {
         }
 
         setLoggedIn(true);
+        setCurrentUser(data.user.email);
         fetchTasks();
       })
       .catch((err) => {
@@ -90,10 +92,18 @@ function App() {
     }).finally(() => {
       setLoggedIn(false);
       setTasks([]);
+      setCurrentUser("");
+      setEmail("");
+      setPassword("");
     });
   }
 
   function addTask() {
+    if (!title.trim()) {
+      alert("Please enter a task title.");
+      return;
+    }
+
     fetch(`${API_URL}/tasks`, {
       method: "POST",
       credentials: "include",
@@ -105,12 +115,19 @@ function App() {
         description,
       }),
     })
-      .then(() => {
+      .then(async (res) => {
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.error || "Could not add task");
+        }
+
         setTitle("");
         setDescription("");
         fetchTasks();
       })
-      .catch(() => {});
+      .catch((err) => {
+        alert(err.message);
+      });
   }
 
   if (!loggedIn) {
@@ -143,7 +160,12 @@ function App() {
   return (
     <div className="app">
       <div className="top-bar">
-        <div className="logo">TaskTrackr</div>
+        <div>
+          <div className="logo">TaskTrackr</div>
+          <p style={{ margin: 0, color: "#65715e" }}>
+            Logged in as {currentUser}
+          </p>
+        </div>
 
         <button className="logout-btn" onClick={logout}>
           Logout
@@ -171,17 +193,27 @@ function App() {
             </div>
           </div>
 
-          {tasks.map((task) => (
-            <div className="task-card" key={task.id}>
+          {tasks.length === 0 ? (
+            <div className="task-card">
               <div>
-                <h3>{task.title}</h3>
-                <p>{task.description}</p>
-                <span>Active Task</span>
+                <h3>No tasks yet</h3>
+                <p>Add a task using the editor on the right.</p>
+                <span>Waiting for task</span>
               </div>
-
-              <button>Edit</button>
             </div>
-          ))}
+          ) : (
+            tasks.map((task) => (
+              <div className="task-card" key={task.id}>
+                <div>
+                  <h3>{task.title}</h3>
+                  <p>{task.description}</p>
+                  <span>Active Task</span>
+                </div>
+
+                <button>Edit</button>
+              </div>
+            ))
+          )}
         </div>
 
         <div className="editor">
