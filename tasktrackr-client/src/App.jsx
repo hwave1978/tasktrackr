@@ -14,27 +14,25 @@ function App() {
   const [description, setDescription] = useState("");
 
   useEffect(() => {
-    checkSession();
+    fetchTasks();
   }, []);
 
-  function checkSession() {
+  function fetchTasks() {
     fetch(`${API_URL}/tasks`, {
       credentials: "include",
     })
       .then(async (res) => {
         if (!res.ok) {
           setLoggedIn(false);
-          setTasks([]);
           return;
         }
 
         const data = await res.json();
-        setLoggedIn(true);
         setTasks(data);
+        setLoggedIn(true);
       })
       .catch(() => {
         setLoggedIn(false);
-        setTasks([]);
       });
   }
 
@@ -79,8 +77,6 @@ function App() {
         }
 
         alert("Account created. Now log in.");
-        setEmail("");
-        setPassword("");
       })
       .catch((err) => {
         alert(err.message);
@@ -94,34 +90,10 @@ function App() {
     }).finally(() => {
       setLoggedIn(false);
       setTasks([]);
-      setEmail("");
-      setPassword("");
     });
   }
 
-  function fetchTasks() {
-    fetch(`${API_URL}/tasks`, {
-      credentials: "include",
-    })
-      .then(async (res) => {
-        if (!res.ok) {
-          setLoggedIn(false);
-          setTasks([]);
-          return;
-        }
-
-        const data = await res.json();
-        setTasks(data);
-      })
-      .catch(() => {});
-  }
-
   function addTask() {
-    if (!title.trim()) {
-      alert("Please enter a task title.");
-      return;
-    }
-
     fetch(`${API_URL}/tasks`, {
       method: "POST",
       credentials: "include",
@@ -133,19 +105,12 @@ function App() {
         description,
       }),
     })
-      .then(async (res) => {
-        if (!res.ok) {
-          const data = await res.json();
-          throw new Error(data.error || "Could not add task");
-        }
-
+      .then(() => {
         setTitle("");
         setDescription("");
         fetchTasks();
       })
-      .catch((err) => {
-        alert(err.message);
-      });
+      .catch(() => {});
   }
 
   if (!loggedIn) {
@@ -153,7 +118,7 @@ function App() {
       <div className="login-page">
         <div className="login-card">
           <h1>TaskTrackr</h1>
-          <p>Log in or create an account to manage your tasks.</p>
+          <p>Track your work and stay organized.</p>
 
           <input
             placeholder="Email"
@@ -168,12 +133,8 @@ function App() {
             onChange={(e) => setPassword(e.target.value)}
           />
 
-          <div className="button-row">
-            <button onClick={login}>Login</button>
-            <button onClick={register} className="secondary-button">
-              Register
-            </button>
-          </div>
+          <button onClick={login}>Login</button>
+          <button onClick={register}>Register</button>
         </div>
       </div>
     );
@@ -181,51 +142,76 @@ function App() {
 
   return (
     <div className="app">
-      <header className="app-header">
-        <div>
-          <h1>TaskTrackr</h1>
-          <p>Your task dashboard</p>
-        </div>
+      <div className="top-bar">
+        <div className="logo">TaskTrackr</div>
 
-        <button onClick={logout} className="logout-button">
+        <button className="logout-btn" onClick={logout}>
           Logout
         </button>
-      </header>
+      </div>
 
-      <main className="dashboard">
-        <section className="task-form">
-          <h2>Add a Task</h2>
+      <div className="layout">
+        <div className="sidebar">
+          <h2>Categories</h2>
+
+          <button className="category active">All Tasks</button>
+          <button className="category">Due Soon</button>
+          <button className="category">Completed</button>
+        </div>
+
+        <div>
+          <div className="hero-card">
+            <h1>Your Tasks</h1>
+            <p>Manage your work and stay productive.</p>
+
+            <div className="filter-row">
+              <button className="filter active">All</button>
+              <button className="filter">Due Soon</button>
+              <button className="filter">Completed</button>
+            </div>
+          </div>
+
+          {tasks.map((task) => (
+            <div className="task-card" key={task.id}>
+              <div>
+                <h3>{task.title}</h3>
+                <p>{task.description}</p>
+                <span>Active Task</span>
+              </div>
+
+              <button>Edit</button>
+            </div>
+          ))}
+        </div>
+
+        <div className="editor">
+          <h2>Task Editor</h2>
+
+          <label>Task Title</label>
 
           <input
-            placeholder="Task title"
+            placeholder="Enter task title"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
           />
 
+          <label>Description</label>
+
           <textarea
-            placeholder="Task description"
+            placeholder="Enter task description"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
           />
 
-          <button onClick={addTask}>Add Task</button>
-        </section>
+          <div className="editor-buttons">
+            <button className="save-btn" onClick={addTask}>
+              Save Task
+            </button>
 
-        <section className="task-list">
-          <h2>Tasks</h2>
-
-          {tasks.length === 0 ? (
-            <p>No tasks yet.</p>
-          ) : (
-            tasks.map((task) => (
-              <div className="task-card" key={task.id}>
-                <h3>{task.title}</h3>
-                <p>{task.description}</p>
-              </div>
-            ))
-          )}
-        </section>
-      </main>
+            <button className="delete-btn">Delete</button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
