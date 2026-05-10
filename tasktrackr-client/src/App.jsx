@@ -11,16 +11,23 @@ function App() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
+  const [editingId, setEditingId] = useState(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("General");
   const [dueDate, setDueDate] = useState("");
+  const [completed, setCompleted] = useState(false);
 
   const [activeFilter, setActiveFilter] = useState("All");
 
   useEffect(() => {
     fetchTasks();
   }, []);
+
+  function cleanDate(value) {
+    if (!value) return "";
+    return String(value).split("T")[0];
+  }
 
   function fetchTasks() {
     fetch(`${API_URL}/tasks`, {
@@ -99,38 +106,89 @@ function App() {
       setCurrentUser("");
       setEmail("");
       setPassword("");
+      clearEditor();
     });
   }
 
-  function addTask() {
+  function clearEditor() {
+    setEditingId(null);
+    setTitle("");
+    setDescription("");
+    setCategory("General");
+    setDueDate("");
+    setCompleted(false);
+  }
+
+  function saveTask() {
     if (!title.trim()) {
       alert("Please enter a task title.");
       return;
     }
 
-    fetch(`${API_URL}/tasks`, {
-      method: "POST",
+    const taskData = {
+      title,
+      description,
+      category,
+      due_date: dueDate || null,
+      completed,
+    };
+
+    const url = editingId
+      ? `${API_URL}/tasks/${editingId}`
+      : `${API_URL}/tasks`;
+
+    const method = editingId ? "PUT" : "POST";
+
+    fetch(url, {
+      method,
       credentials: "include",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        title,
-        description,
-        category,
-        due_date: dueDate,
-      }),
+      body: JSON.stringify(taskData),
     })
       .then(async (res) => {
+        const data = await res.json();
+
         if (!res.ok) {
-          const data = await res.json();
-          throw new Error(data.error || "Could not add task");
+          throw new Error(data.error || "Could not save task");
         }
 
-        setTitle("");
-        setDescription("");
-        setCategory("General");
-        setDueDate("");
+        clearEditor();
+        fetchTasks();
+      })
+      .catch((err) => {
+        alert(err.message);
+      });
+  }
+
+  function editTask(task) {
+    setEditingId(task.id);
+    setTitle(task.title || "");
+    setDescription(task.description || "");
+    setCategory(task.category || "General");
+    setDueDate(cleanDate(task.due_date));
+    setCompleted(Boolean(task.completed));
+  }
+
+  function deleteTask() {
+    if (!editingId) {
+      alert("Select a task to delete first.");
+      return;
+    }
+
+    fetch(`${API_URL}/tasks/${editingId}`, {
+      method: "DELETE",
+      credentials: "include",
+    })
+      .then(async (res) => {
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data.error || "Could not delete task");
+        }
+
+        clearEditor();
         fetchTasks();
       })
       .catch((err) => {
@@ -200,17 +258,23 @@ function App() {
         <div className="sidebar">
           <h2>Categories</h2>
 
-          {["All", "General", "School", "Work", "Personal", "Due Soon", "Completed"].map(
-            (item) => (
-              <button
-                key={item}
-                className={activeFilter === item ? "category active" : "category"}
-                onClick={() => setActiveFilter(item)}
-              >
-                {item === "All" ? "All Tasks" : item}
-              </button>
-            )
-          )}
+          {[
+            "All",
+            "General",
+            "School",
+            "Work",
+            "Personal",
+            "Due Soon",
+            "Completed",
+          ].map((item) => (
+            <button
+              key={item}
+              className={activeFilter === item ? "category active" : "category"}
+              onClick={() => setActiveFilter(item)}
+            >
+              {item === "All" ? "All Tasks" : item}
+            </button>
+          ))}
         </div>
 
         <div>
@@ -247,18 +311,19 @@ function App() {
                   <p>{task.description}</p>
                   <span>
                     {task.category || "General"}
-                    {task.due_date ? ` • Due ${task.due_date}` : ""}
+                    {task.due_date ? ` • Due ${cleanDate(task.due_date)}` : ""}
+                    {task.completed ? " • Completed" : ""}
                   </span>
                 </div>
 
-                <button>Edit</button>
+                <button onClick={() => editTask(task)}>Edit</button>
               </div>
             ))
           )}
         </div>
 
         <div className="editor">
-          <h2>Task Editor</h2>
+          <h2>{editingId ? "Edit Task" : "Task Editor"}</h2>
 
           <label>Task Title</label>
           <input
@@ -289,12 +354,23 @@ function App() {
             onChange={(e) => setDueDate(e.target.value)}
           />
 
+          <label>
+            <input
+              type="checkbox"
+              checked={completed}
+              onChange={(e) => setCompleted(e.target.checked)}
+            />
+            Completed
+          </label>
+
           <div className="editor-buttons">
-            <button className="save-btn" onClick={addTask}>
-              Save Task
+            <button className="save-btn" onClick={saveTask}>
+              {editingId ? "Update Task" : "Save Task"}
             </button>
 
-            <button className="delete-btn">Delete</button>
+            <button className="delete-btn" onClick={deleteTask}>
+              Delete
+            </button>
           </div>
         </div>
       </div>

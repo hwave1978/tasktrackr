@@ -91,50 +91,119 @@ app.post("/logout", (req, res) => {
 });
 
 /* ---------------------------
-   TASK ROUTES
+   GET TASKS
 ---------------------------- */
 app.get("/tasks", authMiddleware, (req, res) => {
-  db.query("SELECT * FROM tasks", (err, results) => {
-    if (err) return res.status(500).json({ error: "Failed to load tasks" });
+  const sql = `
+    SELECT id, title, description, category, due_date, completed
+    FROM tasks
+    ORDER BY id DESC
+  `;
+
+  db.query(sql, (err, results) => {
+    if (err) {
+      return res.status(500).json({ error: "Failed to load tasks" });
+    }
 
     res.json(results);
   });
 });
 
+/* ---------------------------
+   ADD TASK
+---------------------------- */
 app.post("/tasks", authMiddleware, (req, res) => {
-  const { title, description } = req.body;
+  const {
+    title,
+    description,
+    category = "General",
+    due_date = null,
+  } = req.body;
+
+  if (!title) {
+    return res.status(400).json({ error: "Task title is required" });
+  }
+
+  const sql = `
+    INSERT INTO tasks (title, description, category, due_date, completed)
+    VALUES (?, ?, ?, ?, false)
+  `;
 
   db.query(
-    "INSERT INTO tasks (title, description) VALUES (?, ?)",
-    [title, description],
-    (err) => {
-      if (err) return res.status(500).json({ error: "Failed to add task" });
+    sql,
+    [title, description || "", category || "General", due_date || null],
+    (err, result) => {
+      if (err) {
+        return res.status(500).json({ error: "Failed to add task" });
+      }
 
-      res.json({ message: "Task added" });
+      res.json({
+        message: "Task added",
+        taskId: result.insertId,
+      });
     }
   );
 });
 
+/* ---------------------------
+   UPDATE TASK
+---------------------------- */
 app.put("/tasks/:id", authMiddleware, (req, res) => {
   const { id } = req.params;
-  const { title, description, completed } = req.body;
+
+  const {
+    title,
+    description,
+    category = "General",
+    due_date = null,
+    completed = false,
+  } = req.body;
+
+  if (!title) {
+    return res.status(400).json({ error: "Task title is required" });
+  }
+
+  const sql = `
+    UPDATE tasks
+    SET title = ?, description = ?, category = ?, due_date = ?, completed = ?
+    WHERE id = ?
+  `;
 
   db.query(
-    "UPDATE tasks SET title = ?, description = ?, completed = ? WHERE id = ?",
-    [title, description, completed, id],
+    sql,
+    [
+      title,
+      description || "",
+      category || "General",
+      due_date || null,
+      completed ? 1 : 0,
+      id,
+    ],
     (err) => {
-      if (err) return res.status(500).json({ error: "Failed to update task" });
+      if (err) {
+        return res.status(500).json({ error: "Failed to update task" });
+      }
 
       res.json({ message: "Task updated" });
     }
   );
 });
 
+/* ---------------------------
+   DELETE TASK
+---------------------------- */
 app.delete("/tasks/:id", authMiddleware, (req, res) => {
   const { id } = req.params;
 
-  db.query("DELETE FROM tasks WHERE id = ?", [id], (err) => {
-    if (err) return res.status(500).json({ error: "Failed to delete task" });
+  const sql = `
+    DELETE FROM tasks
+    WHERE id = ?
+  `;
+
+  db.query(sql, [id], (err) => {
+    if (err) {
+      return res.status(500).json({ error: "Failed to delete task" });
+    }
 
     res.json({ message: "Task deleted" });
   });
