@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const cookieParser = require("cookie-parser");
 const db = require("./db");
 
 const app = express();
@@ -7,193 +8,122 @@ const PORT = 3001;
 
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: "http://54.175.89.174:5173",
     credentials: true,
   })
 );
 
 app.use(express.json());
+app.use(cookieParser());
 
+/* ---------------------------
+   AUTH MIDDLEWARE
+---------------------------- */
 function authMiddleware(req, res, next) {
-  const cookie = req.headers.cookie || "";
-
-  if (!cookie.includes("tasktrackr_session=logged-in")) {
-    res.status(401).json({ error: "Not logged in" });
-    return;
+  if (req.cookies.tasktrackr_session !== "logged-in") {
+    return res.status(401).json({ error: "Not logged in" });
   }
 
-  req.userId = 1;
   next();
 }
 
-app.get("/", (req, res) => {
-  res.send("TaskTrackr backend is running");
-});
-
-app.get("/test-db", (req, res) => {
-  db.query("SELECT 1 + 1 AS result", (err, results) => {
-    if (err) {
-      res.status(500).json({ error: "Database test failed" });
-      return;
-    }
-
-    res.json(results[0]);
-  });
-});
-
-app.post("/register", (req, res) => {
-  const { email, password } = req.body;
-
-  const sql = `
-    INSERT INTO users (id, email, hashed_password)
-    VALUES (?, ?, ?)
-    ON DUPLICATE KEY UPDATE
-      email = VALUES(email),
-      hashed_password = VALUES(hashed_password)
-  `;
-
-  db.query(sql, [1, email, password], (err) => {
-    if (err) {
-      console.log(err);
-      res.status(500).json({ error: "Registration failed" });
-      return;
-    }
-
-    res.setHeader(
-      "Set-Cookie",
-      "tasktrackr_session=logged-in; Path=/; HttpOnly; SameSite=Lax"
-    );
-
-    res.json({ message: "Registered and logged in" });
-  });
-});
-
+/* ---------------------------
+   LOGIN
+---------------------------- */
 app.post("/login", (req, res) => {
   const { email, password } = req.body;
 
   const sql = `
-    INSERT INTO users (id, email, hashed_password)
-    VALUES (?, ?, ?)
-    ON DUPLICATE KEY UPDATE
-      email = VALUES(email),
-      hashed_password = VALUES(hashed_password)
+    SELECT id, email, role
+    FROM users
+    WHERE email = ? AND hashed_password = ?
   `;
 
-  db.query(sql, [1, email, password], (err) => {
+  db.query(sql, [email, password], (err, result) => {
     if (err) {
-      console.log(err);
-      res.status(500).json({ error: "Login failed" });
-      return;
+      return res.status(500).json({ error: "Login failed" });
     }
 
-    res.setHeader(
-      "Set-Cookie",
-      "tasktrackr_session=logged-in; Path=/; HttpOnly; SameSite=Lax"
-    );
+    if (result.length === 0) {
+      return res.status(401).json({ error: "Invalid email or password" });
+    }
 
-    res.json({ message: "Logged in" });
+    const user = result[0];
+
+    res.cookie("tasktrackr_session", "logged-in", {
+      httpOnly: true,
+      sameSite: "lax",
+    });
+
+    res.json({
+      message: "Logged in",
+      user,
+    });
   });
 });
 
-app.post("/logout", (req, res) => {
-  res.setHeader(
-    "Set-Cookie",
-    "tasktrackr_session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0"
-  );
+/* ---------------------------
+   REGISTER
+---------------------------- */
+app.post("/register", (req, res) => {
+  const { email, password } = req.body;
 
+  const sql = `
+    INSERT INTO users (email, hashed_password, role)
+    VALUES (?, ?, 'user')
+  `;
+
+  db.query(sql, [email, password], (err) => {
+    if (err) {
+      return res.status(500).json({ error: "Register failed" });
+    }
+
+    res.json({ message: "Registered" });
+  });
+});
+
+/* ---------------------------
+   LOGOUT
+---------------------------- */
+app.post("/logout", (req, res) => {
+  res.clearCookie("tasktrackr_session");
   res.json({ message: "Logged out" });
 });
 
+/* ---------------------------
+   TASK ROUTES
+---------------------------- */
 app.get("/tasks", authMiddleware, (req, res) => {
-  const sql = "SELECT * FROM tasks WHERE user_id = ? ORDER BY id DESC";
-
-  db.query(sql, [req.userId], (err, results) => {
-    if (err) {
-      console.log(err);
-      res.status(500).json({ error: "Failed to fetch tasks" });
-      return;
-    }
+  db.query("SELECT * FROM tasks", (err, results) => {
+    if (err) return res.status(500).json({ error: "Failed to load tasks" });
 
     res.json(results);
   });
 });
 
-app.get("/tasks/:id", authMiddleware, (req, res) => {
-  const sql = "SELECT * FROM tasks WHERE id = ? AND user_id = ?";
-
-  db.query(sql, [req.params.id, req.userId], (err, results) => {
-    if (err) {
-      console.log(err);
-      res.status(500).json({ error: "Failed to fetch task" });
-      return;
-    }
-
-    if (results.length === 0) {
-      res.status(404).json({ error: "Task not found" });
-      return;
-    }
-
-    res.json(results[0]);
-  });
-});
-
 app.post("/tasks", authMiddleware, (req, res) => {
-  const { title, description, due_date, category, completed } = req.body;
-
-  const sql = `
-    INSERT INTO tasks
-    (user_id, title, description, due_date, category, completed)
-    VALUES (?, ?, ?, ?, ?, ?)
-  `;
+  const { title, description } = req.body;
 
   db.query(
-    sql,
-    [
-      req.userId,
-      title,
-      description,
-      due_date || null,
-      category,
-      completed || 0,
-    ],
-    (err, result) => {
-      if (err) {
-        console.log(err);
-        res.status(500).json({ error: "Failed to create task" });
-        return;
-      }
+    "INSERT INTO tasks (title, description) VALUES (?, ?)",
+    [title, description],
+    (err) => {
+      if (err) return res.status(500).json({ error: "Failed to add task" });
 
-      res.json({ message: "Task created", id: result.insertId });
+      res.json({ message: "Task added" });
     }
   );
 });
 
 app.put("/tasks/:id", authMiddleware, (req, res) => {
-  const { title, description, due_date, category, completed } = req.body;
-
-  const sql = `
-    UPDATE tasks
-    SET title = ?, description = ?, due_date = ?, category = ?, completed = ?
-    WHERE id = ? AND user_id = ?
-  `;
+  const { id } = req.params;
+  const { title, description, completed } = req.body;
 
   db.query(
-    sql,
-    [
-      title,
-      description,
-      due_date || null,
-      category,
-      completed || 0,
-      req.params.id,
-      req.userId,
-    ],
+    "UPDATE tasks SET title = ?, description = ?, completed = ? WHERE id = ?",
+    [title, description, completed, id],
     (err) => {
-      if (err) {
-        console.log(err);
-        res.status(500).json({ error: "Failed to update task" });
-        return;
-      }
+      if (err) return res.status(500).json({ error: "Failed to update task" });
 
       res.json({ message: "Task updated" });
     }
@@ -201,19 +131,18 @@ app.put("/tasks/:id", authMiddleware, (req, res) => {
 });
 
 app.delete("/tasks/:id", authMiddleware, (req, res) => {
-  const sql = "DELETE FROM tasks WHERE id = ? AND user_id = ?";
+  const { id } = req.params;
 
-  db.query(sql, [req.params.id, req.userId], (err) => {
-    if (err) {
-      console.log(err);
-      res.status(500).json({ error: "Failed to delete task" });
-      return;
-    }
+  db.query("DELETE FROM tasks WHERE id = ?", [id], (err) => {
+    if (err) return res.status(500).json({ error: "Failed to delete task" });
 
     res.json({ message: "Task deleted" });
   });
 });
 
+/* ---------------------------
+   START SERVER
+---------------------------- */
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
