@@ -91,7 +91,7 @@ app.post("/logout", (req, res) => {
 });
 
 /* ---------------------------
-   GET TASKS
+   GET TASKS/READS 
 ---------------------------- */
 app.get("/tasks", authMiddleware, (req, res) => {
   const userId = req.cookies.tasktrackr_session;
@@ -125,7 +125,7 @@ app.get("/tasks/:id", authMiddleware, (req, res) => {
 });
 
 /* ---------------------------
-   ADD TASK
+   ADD TASK/CREATE
 ---------------------------- */
 app.post("/tasks", authMiddleware, (req, res) => {
   const userId = req.cookies.tasktrackr_session;
@@ -165,7 +165,7 @@ app.post("/tasks", authMiddleware, (req, res) => {
 });
 
 /* ---------------------------
-   UPDATE TASK
+   UPDATE/PUT TASK
 ---------------------------- */
 app.put("/tasks/:id", authMiddleware, (req, res) => {
   const userId = req.cookies.tasktrackr_session;
