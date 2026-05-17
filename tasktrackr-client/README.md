@@ -18,3 +18,5 @@ Updated from AWS terminal for Assignment 6.
 I am making a small edit to the file at 1125.
 This is a small change to the readme file in github 1141.
 
+Updated from AWS
+Updated from AWS at 1156
